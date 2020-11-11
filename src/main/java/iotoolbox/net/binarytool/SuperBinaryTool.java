@@ -1,21 +1,11 @@
 package iotoolbox.net.binarytool;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 public class SuperBinaryTool {
 
     public static byte[] transIntToBytes(int data, int maxLen) {
-        byte[] result = transIntToBytes(data);
-        if (result.length <= maxLen) {
-            byte[] maxLenArr = new byte[maxLen];
-            Arrays.fill(maxLenArr, (byte) 0);
-            for (int i = 0; i < result.length; i++) {
-                maxLenArr[maxLen - result.length + i] = result[i];
-            }
-            result = maxLenArr;
-        }
-        return result;
+        return fillZero(transIntToBytes(data), maxLen);
     }
 
     public static byte[] transIntToBytes(int data) {
@@ -32,25 +22,45 @@ public class SuperBinaryTool {
         return result;
     }
 
-    public static byte[] appendByteArr(byte[] bytes, byte[] appendBytes) {
-        if (bytes == null || bytes.length == 0) {
-            return appendBytes;
-        }
-        ArrayList<Byte> appendBytesList = new ArrayList<Byte>();
-        if (appendBytes != null && appendBytes.length > 0) {
-            for (byte b : appendBytes) {
-                appendBytesList.add(b);
-            }
+    public static byte[] transShortToBytes(short data, int maxLen) {
+        return fillZero(transShortToBytes(data), maxLen);
+    }
+
+    public static byte[] transShortToBytes(short data) {
+        if (data <= 0xFF) {
+            return new byte[]{(byte) (data & 0xFF)};
         } else {
-            return bytes;
+            return new byte[]{(byte) ((data >> 8) & 0xFF), (byte) (data & 0xFF)};
         }
-        byte[] resBytes = new byte[bytes.length + appendBytesList.size()];
-        System.arraycopy(bytes, 0, resBytes, 0, bytes.length);
-        int index = bytes.length;
-        for (int i = 0; i < appendBytesList.size(); i++) {
-            resBytes[index + i] = appendBytesList.get(i);
+    }
+
+    public static byte[] appendByteArr(byte[]... appendArr) {
+        byte[] result = null;
+        for (byte[] bytes : appendArr) {
+            result = appendByteArr(result, bytes);
         }
-        return resBytes;
+        return result;
+    }
+
+    public static byte[] appendByteArr(byte[] begin, byte[] appendArr) {
+        if ((begin == null || begin.length == 0) && appendArr != null) return appendArr;
+        if (appendArr == null || appendArr.length == 0) return begin;
+        byte[] result = new byte[begin.length + appendArr.length];
+        System.arraycopy(begin, 0, result, 0, begin.length);
+        System.arraycopy(appendArr, 0, result, begin.length, appendArr.length);
+        return result;
+    }
+
+    public static byte[] fillZero(byte[] data, int maxLen) {
+        if (data.length <= maxLen) {
+            byte[] maxLenArr = new byte[maxLen];
+            Arrays.fill(maxLenArr, (byte) 0);
+            for (int i = 0; i < data.length; i++) {
+                maxLenArr[maxLen - data.length + i] = data[i];
+            }
+            return maxLenArr;
+        }
+        return data;
     }
 
 }

@@ -1,9 +1,13 @@
 package iotoolbox.net.coap.message;
 
 import iotoolbox.net.binarytool.SuperBinaryTool;
+import iotoolbox.net.coap.exeception.CoAPException;
+import iotoolbox.net.test.TestUtil;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 
 public class CoAPMessage {
 
@@ -12,166 +16,64 @@ public class CoAPMessage {
     private MessageType messageType;
     private MessageCode messageCode;
     private int token;
-    private int messageId;
+    private short messageId;
     private CoAPOption[] coAPOptions;
     private byte[] payLoad;
 
-    private DatagramPacket datagramPacket;
+    private boolean useToken = true;
 
-    public CoAPMessage(
-            MessageType messageType,
-            MessageCode messageCode,
-            int token,
-            int messageId,
-            CoAPOption[] coAPOptions,
-            byte[] payLoad,
-            String host, String port) {
+    private String host;
+    private int port;
+
+    public CoAPMessage(MessageType messageType, MessageCode messageCode, int token, short messageId, CoAPOption[] coAPOptions, byte[] payLoad, String host, int port) {
         this.messageType = messageType;
         this.messageCode = messageCode;
         this.token = token;
         this.messageId = messageId;
         this.coAPOptions = coAPOptions;
         this.payLoad = payLoad;
-        datagramPacket = build();
+        this.host = host;
+        this.port = port;
     }
 
-    private DatagramPacket build() {
-        byte[] tokenBytes = SuperBinaryTool.transIntToBytes(token);
-        byte part1 = (byte)(0x80 & messageType<<7);
-
-        return null;
-    }
-
-    public CoAPMessage(DatagramPacket datagramPacket) {
-        this.datagramPacket = datagramPacket;
-    }
-
-    public DatagramPacket getDatagramPacket() {
-        return datagramPacket;
-    }
-
-    public int getOffset() {
-        return datagramPacket.getOffset();
-    }
-
-    public int getLength() {
-        return datagramPacket.getLength();
-    }
-
-    public InetAddress getAddress() {
-        return datagramPacket.getAddress();
-    }
-
-    public int getPort() {
-        return datagramPacket.getPort();
-    }
-}
-
-enum MessageType {
-    CON(0), NON(1), ACK(2), RESET(3);
-    private final int code;
-
-    MessageType(int code) {
-        this.code = code;
-    }
-
-    public int getCode() {
-        return code;
-    }
-}
-
-enum MessageCode {
-    //REQUEST
-    EMPTY(0, 0),
-    GET(0, 1),
-    POST(0, 2),
-    PUT(0, 3),
-    DELETE(0, 4),
-
-    //SUCCESS
-    CREATED(2, 1),
-    DELETED(2, 2),
-    VALID(2, 3),
-    CHANGED(2, 4),
-    CONTENT(2, 5),
-
-    //CLIENT_ERROR
-    BAD_REQUEST(4, 0),
-    UNAUTHORIZED(4, 1),
-    BAD_OPTION(4, 2),
-    FORBIDDEN(4, 3),
-    NOT_FOUND(4, 4),
-    METHOD_NOT_ALLOWED(4, 5),
-    NOT_ACCEPTABLE(4, 6),
-    PRECONDITION_FAILED(4, 12),
-    REQUEST_ENTITY_TOO_LARGE(4, 13),
-    UNSUPPORTED_CONTENT_FORMAT(4, 15),
-
-    //SERVER_ERROR
-    INTERNAL_SERVER_ERROR(5, 0),
-    NOT_IMPLEMENTED(5, 1),
-    BAD_GATEWAY(5, 2),
-    SERVICE_UNAVAILABLE(5, 3),
-    GATEWAY_TIMEOUT(5, 4),
-    PROXYING_NOT_SUPPORTED(5, 5);
-
-    private final int code;
-    private final int detail;
-
-    MessageCode(int code, int detail) {
-        this.code = code;
-        this.detail = detail;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public int getDetail() {
-        return detail;
-    }
-}
-
-class CoAPOption {
-    enum Option {
-        RESERVED(0),
-        IF_MATCH(1),
-        URI_HOST(3),
-        ETAG(4),
-        IF_NOT_MATCH(5),
-        URI_OBSERVE(6),
-        OBJECT_19(19),
-        URI_PORT(7),
-        LOCATION_PATH(8),
-        URI_PATH(11),
-        CONTENT_FORMATE(12),
-        MAX_AGE(14),
-        URI_QUERY(15),
-        ACCEPT(17),
-        LOCATION_QYEERY(20),
-        PROXY_URI(35),
-        PROXY_SCHEME(39),
-        SIZEL(60);
-        public int code;
-
-        Option(int code) {
-            this.code = code;
+    public DatagramPacket buildDatagramPacket() throws UnknownHostException {
+        byte v_t_tkl = (VERSION << 6);
+        v_t_tkl += (messageType.getCode() << 4);
+        byte code = (byte) (messageCode.getCode() << 5);
+        code += messageCode.getDetail();
+        byte[] message = SuperBinaryTool.appendByteArr(new byte[]{v_t_tkl, code});
+        if (useToken) {
+            byte[] tokenBytes = SuperBinaryTool.transIntToBytes(token);
+            message[0] += tokenBytes.length;
+            message = SuperBinaryTool.appendByteArr(message, tokenBytes);
         }
+        if (coAPOptions != null && coAPOptions.length != 0) {
+            Arrays.sort(coAPOptions);
+            for (int i = 0; i < coAPOptions.length; i++) {
+                CoAPOption last = i == 0 ? null : coAPOptions[i - 1];
+                message = SuperBinaryTool.appendByteArr(message, coAPOptions[i].getBytes(last));
+            }
+        }
+        message = SuperBinaryTool.appendByteArr(message, SuperBinaryTool.transShortToBytes(messageId, 2));
+        if (payLoad != null) {
+            message = SuperBinaryTool.appendByteArr(message, new byte[]{(byte) 0xff}, payLoad);
+        }
+        return new DatagramPacket(message, message.length, InetAddress.getByName(host), port);
     }
 
-    private Option option;
-    private byte[] optionValue;
-
-    public CoAPOption(Option option, byte[] optionValue) {
-        this.option = option;
-        this.optionValue = optionValue;
+    public void setCoAPOptions(CoAPOption[] coAPOptions) {
+        this.coAPOptions = coAPOptions;
     }
 
-    public Option getOption() {
-        return option;
+    public void setPayLoad(byte[] payLoad) {
+        this.payLoad = payLoad;
     }
 
-    public byte[] getOptionValue() {
-        return optionValue;
+    public void setMessageId(short messageId) {
+        this.messageId = messageId;
+    }
+
+    public void setToken(int token) {
+        this.token = token;
     }
 }
