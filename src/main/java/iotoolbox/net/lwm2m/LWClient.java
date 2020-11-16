@@ -13,6 +13,10 @@ public class LWClient implements CoAPMessageHandler {
         coAPClient = new CoAPClient(this);
     }
 
+    public void send() {
+
+    }
+
     @Override
     public void handle(CoAPMessage message) {
 

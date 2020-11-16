@@ -49,7 +49,7 @@ public class CoAPOption implements Comparable {
     }
 
     public byte[] getBytes(CoAPOption last) {
-        int delta = last == null ? 0 : last.getOption() - this.getOption();
+        int delta = last == null ? this.getOption() : this.getOption() - last.getOption();
         return SuperBinaryTool.appendByteArr(
                 new byte[]{(byte) ((calculateDeltaOrLen(delta) << 4) + calculateDeltaOrLen(optionValue.length))},
                 reloadDeltaOrLen(delta), reloadDeltaOrLen(optionValue.length),
@@ -58,13 +58,13 @@ public class CoAPOption implements Comparable {
 
     private static byte calculateDeltaOrLen(int deltaOrLen) {
         if (deltaOrLen < 13) return (byte) deltaOrLen;
-        if (deltaOrLen < 269) return 14;
-        return 15;
+        if (deltaOrLen < 269) return 13;
+        return 14;
     }
 
     private static byte[] reloadDeltaOrLen(int deltaOrLen) {
         if (deltaOrLen < 13) return null;
-        if (deltaOrLen < 269) return SuperBinaryTool.transIntToBytes(deltaOrLen - 13, 2);
-        return SuperBinaryTool.transIntToBytes(deltaOrLen - 269, 4);
+        if (deltaOrLen < 269) return SuperBinaryTool.transIntToBytes(deltaOrLen - 13, 1);
+        return SuperBinaryTool.transIntToBytes(deltaOrLen - 269, 2);
     }
 }

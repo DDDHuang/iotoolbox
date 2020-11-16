@@ -29,7 +29,7 @@ public class CoAPClient implements SimpleUdpMessageHandler {
     }
 
     public void handle(DatagramPacket datagramPacket) {
-        handler.handle(new CoAPMessage(datagramPacket));
+//        handler.handle(new CoAPMessage(datagramPacket));
     }
 }
 
