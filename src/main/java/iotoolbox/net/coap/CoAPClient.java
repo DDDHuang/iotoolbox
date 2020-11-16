@@ -1,20 +1,26 @@
 package iotoolbox.net.coap;
 
+import iotoolbox.net.coap.message.CoAPMessage;
 import iotoolbox.net.udp.SimpleUdpMessageHandler;
 import iotoolbox.net.udp.UdpSimpleClient;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.SocketException;
+import java.net.*;
 
 public class CoAPClient implements SimpleUdpMessageHandler {
     private UdpSimpleClient udpSimpleClient;
+    private CoAPMessageHandler handler;
 
-    public CoAPClient(String hosts, int port) throws SocketException {
+    public CoAPClient(CoAPMessageHandler handler) throws SocketException {
         udpSimpleClient = new UdpSimpleClient(this);
+        this.handler = handler;
     }
 
-    public void send(DatagramPacket datagramPacket) throws IOException {
+
+    public void send(CoAPMessage message, String host, int port) throws IOException {
+        byte[] data = message.getBytes();
+        SocketAddress socketAddress = new InetSocketAddress(host, port);
+        DatagramPacket datagramPacket = new DatagramPacket(data, data.length, socketAddress);
         this.udpSimpleClient.send(datagramPacket);
     }
 
@@ -23,7 +29,7 @@ public class CoAPClient implements SimpleUdpMessageHandler {
     }
 
     public void handle(DatagramPacket datagramPacket) {
-
+        handler.handle(new CoAPMessage(datagramPacket));
     }
 }
 

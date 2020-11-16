@@ -1,12 +1,8 @@
 package iotoolbox.net.coap.message;
 
 import iotoolbox.net.binarytool.SuperBinaryTool;
-import iotoolbox.net.coap.exeception.CoAPException;
-import iotoolbox.net.test.TestUtil;
 
 import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 
 public class CoAPMessage {
@@ -22,21 +18,21 @@ public class CoAPMessage {
 
     private boolean useToken = true;
 
-    private String host;
-    private int port;
 
-    public CoAPMessage(MessageType messageType, MessageCode messageCode, int token, short messageId, CoAPOption[] coAPOptions, byte[] payLoad, String host, int port) {
+    public CoAPMessage(DatagramPacket datagramPacket) {
+        // TODO: 2020/11/13 message parse 
+    }
+
+    public CoAPMessage(MessageType messageType, MessageCode messageCode, int token, short messageId, CoAPOption[] coAPOptions, byte[] payLoad) {
         this.messageType = messageType;
         this.messageCode = messageCode;
         this.token = token;
         this.messageId = messageId;
         this.coAPOptions = coAPOptions;
         this.payLoad = payLoad;
-        this.host = host;
-        this.port = port;
     }
 
-    public DatagramPacket buildDatagramPacket() throws UnknownHostException {
+    public byte[] getBytes() {
         byte v_t_tkl = (VERSION << 6);
         v_t_tkl += (messageType.getCode() << 4);
         byte code = (byte) (messageCode.getCode() << 5);
@@ -58,7 +54,7 @@ public class CoAPMessage {
         if (payLoad != null) {
             message = SuperBinaryTool.appendByteArr(message, new byte[]{(byte) 0xff}, payLoad);
         }
-        return new DatagramPacket(message, message.length, InetAddress.getByName(host), port);
+        return message;
     }
 
     public void setCoAPOptions(CoAPOption[] coAPOptions) {

@@ -52,8 +52,8 @@ public class CoAPOption implements Comparable {
         int delta = last == null ? 0 : last.getOption() - this.getOption();
         return SuperBinaryTool.appendByteArr(
                 new byte[]{(byte) ((calculateDeltaOrLen(delta) << 4) + calculateDeltaOrLen(optionValue.length))},
-                reloadDeltaOrLen(delta),
-                reloadDeltaOrLen(optionValue.length), optionValue);
+                reloadDeltaOrLen(delta), reloadDeltaOrLen(optionValue.length),
+                optionValue);
     }
 
     private static byte calculateDeltaOrLen(int deltaOrLen) {
