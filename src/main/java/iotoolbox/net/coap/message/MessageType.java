@@ -11,4 +11,12 @@ public enum MessageType {
     public byte getCode() {
         return code;
     }
+
+    public static MessageType findByCode(int code) {
+        for (MessageType value : MessageType.values()) {
+            if (value.getCode() == code) return value;
+        }
+        return null;
+    }
+
 }

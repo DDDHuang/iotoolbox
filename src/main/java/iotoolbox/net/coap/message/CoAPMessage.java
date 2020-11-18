@@ -6,28 +6,45 @@ import iotoolbox.net.coap.exeception.CoAPException;
 
 import java.net.DatagramPacket;
 import java.util.Arrays;
+import java.util.Map;
 
 public class CoAPMessage {
 
     public static final int VERSION = 1;
+    public static final byte PAYLOAD_MARK = (byte) 0xff;
 
     private MessageType messageType;
     private MessageCode messageCode;
-    private int token;
     private short messageId;
+    private int token;
     private CoAPOption[] coAPOptions;
     private byte[] payLoad;
 
     private boolean useToken = true;
 
-
     public CoAPMessage(DatagramPacket datagramPacket) throws CoAPException {
-        byte[] messageData = datagramPacket.getData();
-        byte v_t_tkl = messageData[0];
+        this(datagramPacket.getData());
+    }
+
+    public CoAPMessage(byte[] messageData) throws CoAPException {
+        int decodeIndex = 0;
+        byte v_t_tkl = messageData[decodeIndex];
         //version
         if ((v_t_tkl >> 6) != 1) throw new CoAPException(CoAPError.UN_SUPPORT_VERSION);
         //type
+        int type_code = ((v_t_tkl - (VERSION << 6)) >> 4);
+        this.messageType = MessageType.findByCode(type_code);
+        System.out.println("type " + messageType);
+        //token len
+        int tkl = v_t_tkl & 0xF;
+        System.out.println("tkl " + tkl);
+        this.messageId = SuperBinaryTool.transBytesToShort(messageData[++decodeIndex], messageData[++decodeIndex]);
+        System.out.println("message id " + this.messageId);
+        this.token = SuperBinaryTool.transBytesToInt(Arrays.copyOfRange(messageData, ++decodeIndex, decodeIndex += tkl));
+        System.out.println("token " + this.token);
+        coAPOptions = CoAPOption.parseOptions(messageData, decodeIndex);
 
+        payLoad = messageData[++decodeIndex] == PAYLOAD_MARK ? null : Arrays.copyOfRange(messageData, decodeIndex, messageData.length);
     }
 
     public CoAPMessage(MessageType messageType, MessageCode messageCode, int token, short messageId, CoAPOption[] coAPOptions, byte[] payLoad) {
@@ -60,7 +77,7 @@ public class CoAPMessage {
             }
         }
         if (payLoad != null) {
-            message = SuperBinaryTool.appendByteArr(message, new byte[]{(byte) 0xff}, payLoad);
+            message = SuperBinaryTool.appendByteArr(message, new byte[]{PAYLOAD_MARK}, payLoad);
         }
         return message;
     }

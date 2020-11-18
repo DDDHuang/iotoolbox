@@ -2,7 +2,29 @@ package iotoolbox.net.binarytool;
 
 import java.util.Arrays;
 
+/**
+ * only support positive number
+ * not support negative number
+ */
 public class SuperBinaryTool {
+
+    public static int transBytesToInt(byte... data) {
+        if (data.length == 1) return data[0];
+        if (data.length > 4) return Integer.MAX_VALUE;
+        if (data[0] < 0) {
+            data[0] = (byte) -data[0];
+        }
+        int result = 0;
+        for (int i = 0; i < data.length; i++) {
+            result += ((data[i] & 0xff) << ((data.length - 1 - i) * 8));
+        }
+        return result;
+    }
+
+    public static short transBytesToShort(byte... data) {
+        if (data.length > 2) return Short.MAX_VALUE;
+        return (short) transBytesToInt(data);
+    }
 
     public static byte[] transIntToBytes(int data, int maxLen) {
         return fillZero(transIntToBytes(data), maxLen);

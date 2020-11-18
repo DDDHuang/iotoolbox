@@ -1,5 +1,6 @@
 package iotoolbox.net.coap;
 
+import iotoolbox.net.coap.exeception.CoAPException;
 import iotoolbox.net.coap.message.CoAPMessage;
 import iotoolbox.net.udp.SimpleUdpMessageHandler;
 import iotoolbox.net.udp.UdpSimpleClient;
@@ -29,7 +30,12 @@ public class CoAPClient implements SimpleUdpMessageHandler {
     }
 
     public void handle(DatagramPacket datagramPacket) {
-//        handler.handle(new CoAPMessage(datagramPacket));
+        try {
+            handler.handle(new CoAPMessage(datagramPacket));
+        } catch (CoAPException e) {
+            // TODO: 2020/11/16 show message en de code error
+            e.printStackTrace();
+        }
     }
 }
 
