@@ -1,4 +1,4 @@
-package iotoolbox.net.coap.message;
+package iotoolbox.net.coap;
 
 import iotoolbox.net.binarytool.SuperBinaryTool;
 import iotoolbox.net.coap.exeception.CoAPError;
@@ -10,19 +10,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class CoAPMessage {
-
-    public static final int VERSION = 1;
-    public static final byte PAYLOAD_MARK = (byte) 0xff;
-
-    public final MessageType messageType;
-    public final MessageCode messageCode;
-    public final short messageId;
-    public Integer token;
-    public final ArrayList<SimpleEntry<CoAPOption, byte[]>> options = new ArrayList<>();
-    public byte[] payLoad;
+    private MessageType messageType;
+    private MessageCode messageCode;
+    private short messageId;
+    private Integer token;
+    private final ArrayList<SimpleEntry<CoAPOption, byte[]>> options = new ArrayList<>();
+    private byte[] payLoad;
 
     public CoAPMessage(DatagramPacket datagramPacket) throws CoAPException {
         this(datagramPacket.getData());
+    }
+
+    public CoAPMessage() {
     }
 
     // TODO: 2020/11/19 分包 沾包  处理
@@ -30,18 +29,18 @@ public class CoAPMessage {
         int decodeIndex = 0;
         byte v_t_tkl = messageData[decodeIndex];
         if ((v_t_tkl >> 6) != 1) throw new CoAPException(CoAPError.UN_SUPPORT_VERSION);
-        int type_code = ((v_t_tkl - (VERSION << 6)) >> 4);
+        int type_code = ((v_t_tkl - (CoAP.VERSION << 6)) >> 4);
         this.messageType = MessageType.findByCode(type_code);
         int tkl = v_t_tkl & 0xF;
         this.messageCode = MessageCode.findByCode(messageData[++decodeIndex]);
         this.messageId = SuperBinaryTool.transBytesToShort(messageData[++decodeIndex], messageData[++decodeIndex]);
-        if(tkl>0){
-            this.token =  SuperBinaryTool.transBytesToInt(Arrays.copyOfRange(messageData, ++decodeIndex, decodeIndex += tkl));
-        }else {
+        if (tkl > 0) {
+            this.token = SuperBinaryTool.transBytesToInt(Arrays.copyOfRange(messageData, ++decodeIndex, decodeIndex += tkl));
+        } else {
             decodeIndex++;
         }
         CoAPOption lastOption = null;
-        while (messageData[decodeIndex] != CoAPMessage.PAYLOAD_MARK && messageData[decodeIndex] != 0) {
+        while (messageData[decodeIndex] != CoAP.PAYLOAD_MARK && messageData[decodeIndex] != 0) {
             int delta = ((messageData[decodeIndex] & 0xff) >> 4);
             int optLen = messageData[decodeIndex] & 0xf;
             if (delta == 13) delta = SuperBinaryTool.transBytesToInt(messageData[++decodeIndex]) + 13;
@@ -54,7 +53,7 @@ public class CoAPMessage {
             this.addOption(newOption, Arrays.copyOfRange(messageData, ++decodeIndex, decodeIndex += optLen));
             lastOption = newOption;
         }
-        this.payLoad = messageData[decodeIndex] == PAYLOAD_MARK ? Arrays.copyOfRange(messageData, ++decodeIndex, messageData.length) : null;
+        this.payLoad = messageData[decodeIndex] == CoAP.PAYLOAD_MARK ? Arrays.copyOfRange(messageData, ++decodeIndex, messageData.length) : null;
     }
 
     public CoAPMessage(MessageType messageType, MessageCode messageCode, short messageId) {
@@ -80,7 +79,7 @@ public class CoAPMessage {
     }
 
     public byte[] getBytes() {
-        byte v_t_tkl = (VERSION << 6);
+        byte v_t_tkl = (CoAP.VERSION << 6);
         v_t_tkl += (messageType.getCode() << 4);
         byte code = (byte) (messageCode.code << 5);
         code += messageCode.detail;
@@ -97,7 +96,7 @@ public class CoAPMessage {
             last = optionEntry.getKey();
         }
         if (payLoad != null) {
-            message = SuperBinaryTool.appendByteArr(message, new byte[]{PAYLOAD_MARK}, payLoad);
+            message = SuperBinaryTool.appendByteArr(message, new byte[]{CoAP.PAYLOAD_MARK}, payLoad);
         }
         return message;
     }
@@ -111,7 +110,7 @@ public class CoAPMessage {
     }
 
     public void setPayLoad(String payLoad) {
-        this.payLoad = payLoad.getBytes();
+        this.setPayLoad(payLoad.getBytes());
     }
 
     private static byte[] buildOption(CoAPOption last, CoAPOption newOpt, byte[] data) {
@@ -151,5 +150,138 @@ public class CoAPMessage {
         }
         stringBuilder.append("}, payLoad=").append(Arrays.toString(payLoad)).append('}');
         return stringBuilder.toString();
+    }
+
+    public enum MessageType {
+        CON((byte) 0), NON((byte) 1), ACK((byte) 2), RESET((byte) 3);
+        private final byte code;
+
+        MessageType(byte code) {
+            this.code = code;
+        }
+
+        public byte getCode() {
+            return code;
+        }
+
+        public static MessageType findByCode(int code) {
+            for (MessageType value : MessageType.values()) {
+                if (value.getCode() == code) return value;
+            }
+            return null;
+        }
+    }
+
+    public enum MessageCode {
+        //REQUEST
+        EMPTY((byte) 0, (byte) 0),
+        GET((byte) 0, (byte) 1),
+        POST((byte) 0, (byte) 2),
+        PUT((byte) 0, (byte) 3),
+        DELETE((byte) 0, (byte) 4),
+
+        //SUCCESS
+        CREATED((byte) 2, (byte) 1),
+        DELETED((byte) 2, (byte) 2),
+        VALID((byte) 2, (byte) 3),
+        CHANGED((byte) 2, (byte) 4),
+        CONTENT((byte) 2, (byte) 5),
+
+        //CLIENT_ERROR
+        BAD_REQUEST((byte) 4, (byte) 0),
+        UNAUTHORIZED((byte) 4, (byte) 1),
+        BAD_OPTION((byte) 4, (byte) 2),
+        FORBIDDEN((byte) 4, (byte) 3),
+        NOT_FOUND((byte) 4, (byte) 4),
+        METHOD_NOT_ALLOWED((byte) 4, (byte) 5),
+        NOT_ACCEPTABLE((byte) 4, (byte) 6),
+        PRECONDITION_FAILED((byte) 4, (byte) 12),
+        REQUEST_ENTITY_TOO_LARGE((byte) 4, (byte) 13),
+        UNSUPPORTED_CONTENT_FORMAT((byte) 4, (byte) 15),
+
+        //SERVER_ERROR
+        INTERNAL_SERVER_ERROR((byte) 5, (byte) 0),
+        NOT_IMPLEMENTED((byte) 5, (byte) 1),
+        BAD_GATEWAY((byte) 5, (byte) 2),
+        SERVICE_UNAVAILABLE((byte) 5, (byte) 3),
+        GATEWAY_TIMEOUT((byte) 5, (byte) 4),
+        PROXYING_NOT_SUPPORTED((byte) 5, (byte) 5);
+
+        public final byte code;
+        public final byte detail;
+
+        MessageCode(byte code, byte detail) {
+            this.code = code;
+            this.detail = detail;
+        }
+
+        public static MessageCode findByCode(byte data) {
+            byte code = (byte) ((data & 0xFF) >> 5);
+            byte detail = (byte) (data & 0x1f);
+            return findByCode(code, detail);
+        }
+
+        public static MessageCode findByCode(byte code, byte detail) {
+            for (MessageCode value : MessageCode.values()) {
+                if (value.code == code && value.detail == detail) return value;
+            }
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return "MessageCode{" + this.name() +
+                    ", code=" + code +
+                    ", detail=" + detail +
+                    '}';
+        }
+    }
+
+    public enum CoAPOption {
+        RESERVED(0),
+        IF_MATCH(1),
+        URI_HOST(3),
+        ETAG(4),
+        IF_NOT_MATCH(5),
+        URI_OBSERVE(6),
+        OBJECT_19(19),
+        URI_PORT(7),
+        LOCATION_PATH(8),
+        URI_PATH(11),
+        CONTENT_FORMATE(12),
+        MAX_AGE(14),
+        URI_QUERY(15),
+        ACCEPT(17),
+        LOCATION_QYEERY(20),
+        PROXY_URI(35),
+        PROXY_SCHEME(39),
+        SIZEL(60);
+
+        public final int optionCode;
+
+        CoAPOption(int optionCode) {
+            this.optionCode = optionCode;
+        }
+
+        public static CoAPOption findByCode(int optionCode) {
+            for (CoAPOption option : CoAPOption.values()) {
+                if (option.optionCode == optionCode) return option;
+            }
+            return null;
+        }
+    }
+
+    public enum ContentFormat {
+        TEXT_PLAIN(0),
+        APPLICATION_LINK_FORMATE(40),
+        APPLICATION_OCTET_STREAM(42),
+        APPLICATION_VNDOMALWM2M_TLV(11542),
+        APPLICATION_VNDOMALWM2M_JSON(11543);
+
+        public final int code;
+
+        ContentFormat(int code) {
+            this.code = code;
+        }
     }
 }
