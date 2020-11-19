@@ -35,19 +35,32 @@ public enum MessageCode {
     GATEWAY_TIMEOUT((byte) 5, (byte) 4),
     PROXYING_NOT_SUPPORTED((byte) 5, (byte) 5);
 
-    private final byte code;
-    private final byte detail;
+    public final byte code;
+    public final byte detail;
 
     MessageCode(byte code, byte detail) {
         this.code = code;
         this.detail = detail;
     }
 
-    public byte getCode() {
-        return code;
+    public static MessageCode findByCode(byte data) {
+        byte code = (byte) ((data & 0xFF) >> 5);
+        byte detail = (byte) (data & 0x1f);
+        return findByCode(code, detail);
     }
 
-    public byte getDetail() {
-        return detail;
+    public static MessageCode findByCode(byte code, byte detail) {
+        for (MessageCode value : MessageCode.values()) {
+            if (value.code == code && value.detail == detail) return value;
+        }
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return "MessageCode{" + this.name() +
+                ", code=" + code +
+                ", detail=" + detail +
+                '}';
     }
 }

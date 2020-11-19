@@ -33,7 +33,6 @@ public class CoAPClient implements SimpleUdpMessageHandler {
         try {
             handler.handle(new CoAPMessage(datagramPacket));
         } catch (CoAPException e) {
-            // TODO: 2020/11/16 show message en de code error
             e.printStackTrace();
         }
     }
