@@ -1,7 +1,6 @@
 package iotoolbox.net.coap;
 
 import iotoolbox.net.binarytool.SuperBinaryTool;
-import iotoolbox.net.coap.exeception.CoAPError;
 import iotoolbox.net.coap.exeception.CoAPException;
 
 import java.net.DatagramPacket;
@@ -28,7 +27,7 @@ public class CoAPMessage {
     public CoAPMessage(byte[] messageData) throws CoAPException {
         int decodeIndex = 0;
         byte v_t_tkl = messageData[decodeIndex];
-        if ((v_t_tkl >> 6) != 1) throw new CoAPException(CoAPError.UN_SUPPORT_VERSION);
+        if ((v_t_tkl >> 6) != 1) throw new CoAPException(CoAPException.UN_SUPPORT_VERSION);
         int type_code = ((v_t_tkl - (CoAP.VERSION << 6)) >> 4);
         this.messageType = MessageType.findByCode(type_code);
         int tkl = v_t_tkl & 0xF;
@@ -99,6 +98,18 @@ public class CoAPMessage {
             message = SuperBinaryTool.appendByteArr(message, new byte[]{CoAP.PAYLOAD_MARK}, payLoad);
         }
         return message;
+    }
+
+    public void setMessageType(MessageType messageType) {
+        this.messageType = messageType;
+    }
+
+    public void setMessageCode(MessageCode messageCode) {
+        this.messageCode = messageCode;
+    }
+
+    public void setMessageId(short messageId) {
+        this.messageId = messageId;
     }
 
     public void setToken(Integer token) {

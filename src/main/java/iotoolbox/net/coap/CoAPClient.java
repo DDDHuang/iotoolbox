@@ -7,33 +7,42 @@ import iotoolbox.net.udp.UdpSimpleClient;
 import java.io.IOException;
 import java.net.*;
 
-public class CoAPClient {
-    private CoAPMessageHandler handler;
+public class CoAPClient implements SimpleUdpMessageHandler {
     private UdpSimpleClient udpSimpleClient;
 
     public CoAPClient() throws SocketException {
-        handler = new SimpleCoAPMessageHandler();
-        udpSimpleClient = new UdpSimpleClient((SimpleUdpMessageHandler) handler);
+        udpSimpleClient = new UdpSimpleClient(this);
     }
+
+    public Response post(CoAPUrl url, byte[] payload) throws IOException {
+        return post(Request.postRequest(url, payload));
+    }
+
+    public Response post(Request request) throws IOException {
+        send(request);
+        return null;
+    }
+
 
     public Response empty(Request request) {
         return null;
     }
 
-    public Response get() {
+    public Response get(Request request) {
         return null;
     }
 
-    public Response post() {
+
+    public Response put(Request request) {
         return null;
     }
 
-    public Response put() {
+    public Response delete(Request request) {
         return null;
     }
 
-    public Response delete() {
-        return null;
+    public void send(Request request) throws IOException {
+        send(request, request.getCoAPUrl().getHost(), request.getCoAPUrl().getPort());
     }
 
     public void send(CoAPMessage message, String host, int port) throws IOException {
@@ -43,18 +52,7 @@ public class CoAPClient {
         this.udpSimpleClient.send(datagramPacket);
     }
 
-    public void setHandler(CoAPMessageHandler handler) {
-        this.handler = handler;
-    }
-
-    public void close() {
-        this.udpSimpleClient.close();
-    }
-}
-
-class SimpleCoAPMessageHandler implements CoAPMessageHandler, SimpleUdpMessageHandler {
-    @Override
-    public void handle(CoAPMessage message) {
+    private void handle(CoAPMessage message) {
         System.out.println(message);
     }
 
@@ -65,6 +63,10 @@ class SimpleCoAPMessageHandler implements CoAPMessageHandler, SimpleUdpMessageHa
         } catch (CoAPException e) {
             e.printStackTrace();
         }
+    }
+
+    public void close() {
+        this.udpSimpleClient.close();
     }
 }
 
