@@ -11,7 +11,7 @@ import java.util.Arrays;
 public class CoAPMessage {
     private MessageType messageType;
     private MessageCode messageCode;
-    private short messageId;
+    private short messageId = 0;
     private Integer token;
     private final ArrayList<SimpleEntry<CoAPOption, byte[]>> options = new ArrayList<>();
     private byte[] payLoad;
@@ -32,7 +32,7 @@ public class CoAPMessage {
         this.messageType = MessageType.findByCode(type_code);
         int tkl = v_t_tkl & 0xF;
         this.messageCode = MessageCode.findByCode(messageData[++decodeIndex]);
-        this.messageId = SuperBinaryTool.transBytesToShort(messageData[++decodeIndex], messageData[++decodeIndex]);
+        messageId = SuperBinaryTool.transBytesToShort(messageData[++decodeIndex], messageData[++decodeIndex]);
         if (tkl > 0) {
             this.token = SuperBinaryTool.transBytesToInt(Arrays.copyOfRange(messageData, ++decodeIndex, decodeIndex += tkl));
         } else {
@@ -53,20 +53,6 @@ public class CoAPMessage {
             lastOption = newOption;
         }
         this.payLoad = messageData[decodeIndex] == CoAP.PAYLOAD_MARK ? Arrays.copyOfRange(messageData, ++decodeIndex, messageData.length) : null;
-    }
-
-    public CoAPMessage(MessageType messageType, MessageCode messageCode, short messageId) {
-        this.messageType = messageType;
-        this.messageCode = messageCode;
-        this.messageId = messageId;
-    }
-
-    public CoAPMessage(MessageType messageType, MessageCode messageCode, short messageId, int token, byte[] payLoad) {
-        this.messageType = messageType;
-        this.messageCode = messageCode;
-        this.messageId = messageId;
-        this.token = token;
-        this.payLoad = payLoad;
     }
 
     public void addOption(CoAPOption option, byte[] data) {

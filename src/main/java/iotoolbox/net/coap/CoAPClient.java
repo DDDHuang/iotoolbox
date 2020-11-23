@@ -14,7 +14,7 @@ public class CoAPClient implements SimpleUdpMessageHandler {
         udpSimpleClient = new UdpSimpleClient(this);
     }
 
-    public Response post(CoAPUrl url, byte[] payload) throws IOException {
+    public Response post(String url, String payload) throws IOException, CoAPException {
         return post(Request.postRequest(url, payload));
     }
 
